@@ -5,7 +5,6 @@ import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.renderer.texture.SpriteContents;
 import net.minecraft.client.renderer.texture.SpriteLoader;
 import net.minecraft.client.renderer.texture.Stitcher;
-import net.minecraft.client.resources.metadata.animation.FrameSize;
 import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,9 +14,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import pigcart.particlerain.ParticleRain;
-import pigcart.particlerain.StonecutterUtil;
+import pigcart.particlerain.VersionUtil;
 import pigcart.particlerain.TextureUtil;
-import pigcart.particlerain.config.ModConfig;
+import pigcart.particlerain.config.ConfigManager;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,7 +32,7 @@ public abstract class SpriteLoaderMixin {
 
     @Inject(method = "stitch", at = @At("HEAD"))
     public void stitch(List<SpriteContents> list, int i, Executor executor, CallbackInfoReturnable<SpriteLoader.Preparations> cir) {
-        if (this.location.equals(StonecutterUtil.getResourceLocation("textures/atlas/particles.png"))) {
+        if (this.location.equals(VersionUtil.getMcId("textures/atlas/particles.png"))) {
             this.spriteContentsList = list;
         }
     }
@@ -43,16 +42,18 @@ public abstract class SpriteLoaderMixin {
             at = @At(value = "NEW", args = "class=net/minecraft/client/renderer/texture/Stitcher")
     )
     private Stitcher<SpriteContents> registerWeatherParticleSprites(Stitcher<SpriteContents> stitcher) {
-        if (this.location.equals(StonecutterUtil.getResourceLocation("textures/atlas/particles.png"))) {
+        if (this.location.equals(VersionUtil.getMcId("textures/atlas/particles.png"))) {
             // load weather textures
             NativeImage rainImage = null;
             NativeImage snowImage = null;
             try {
-                rainImage = TextureUtil.loadTexture(StonecutterUtil.getResourceLocation("textures/environment/rain.png"));
-                snowImage = TextureUtil.loadTexture(StonecutterUtil.getResourceLocation("textures/environment/snow.png"));
-                if (ModConfig.CONFIG.compat.waterTint) TextureUtil.applyToAllPixels(TextureUtil.desaturateOperation, rainImage);
+                rainImage = TextureUtil.loadTexture(VersionUtil.getMcId("textures/environment/rain.png"));
+                snowImage = TextureUtil.loadTexture(VersionUtil.getMcId("textures/environment/snow.png"));
+                TextureUtil.boostAlpha(rainImage, "rain");
+                TextureUtil.boostAlpha(snowImage, "snow");
+                if (ConfigManager.config.compat.waterTint) TextureUtil.desaturate(rainImage);
             } catch (IOException e) {
-                e.printStackTrace();
+                ParticleRain.LOGGER.error("Error loading weather textures: ", e);
             }
 
             // split both weather textures into four sprites
@@ -68,19 +69,13 @@ public abstract class SpriteLoaderMixin {
                 stitcher.registerSprite(TextureUtil.generateRipple(i, rippleResolution));
             }
             // create gray versions of the default splashes so tint can be applied
-            if (ModConfig.CONFIG.compat.waterTint) {
+            if (ConfigManager.config.compat.waterTint) {
                 for (int i = 0; i < 4; i++) {
-                    NativeImage splashImage = null;
                     try {
-                        splashImage = TextureUtil.loadTexture(StonecutterUtil.getResourceLocation("textures/particle/splash_" + i + ".png"));
-                        TextureUtil.applyToAllPixels(TextureUtil.desaturateOperation, splashImage);
+                        stitcher.registerSprite(VersionUtil.loadSplashSprite(i));
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        ParticleRain.LOGGER.error("Error loading splash particle {}: ", i, e);
                     }
-                    stitcher.registerSprite(new SpriteContents(
-                            StonecutterUtil.getResourceLocation(ParticleRain.MOD_ID, "splash_" + i),
-                            new FrameSize(splashImage.getWidth(), splashImage.getHeight()),
-                            splashImage, StonecutterUtil.getSpriteMetadata()));
                 }
             }
         }

@@ -1,55 +1,57 @@
 package pigcart.particlerain.particle;
 
+//? if >= 1.21.9 {
+/*import net.minecraft.client.particle.SingleQuadParticle;
+import net.minecraft.client.renderer.state.QuadParticleRenderState;
+*///?} else {
+import net.minecraft.client.particle.ParticleRenderType;
+import net.minecraft.client.particle.TextureSheetParticle;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+//?}
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.particle.TextureSheetParticle;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleGroup;
 import net.minecraft.util.Mth;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Math;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import pigcart.particlerain.WeatherParticleManager;
+import pigcart.particlerain.config.ConfigData;
 
-import java.util.Optional;
-
-import static pigcart.particlerain.config.ModConfig.CONFIG;
+import static pigcart.particlerain.config.ConfigManager.config;
 
 //TODO
-public abstract class WeatherParticle extends TextureSheetParticle {
+public abstract class WeatherParticle extends /*? if >=1.21.9 {*/ /*SingleQuadParticle *//*?} else {*/TextureSheetParticle /*?}*/ {
 
     protected BlockPos.MutableBlockPos pos;
     protected BlockPos.MutableBlockPos oPos;
     boolean doCollisionAnim = false;
-    BlockHitResult collision = null;
     float baseTemp;
     float targetOpacity;
     float oQuadSize;
     float distance;
 
-    protected WeatherParticle(ClientLevel level, double x, double y, double z, float gravity, float opacity, float size, float windStrength, float stormWindStrength) {
-        super(level, x, y, z);
+    protected WeatherParticle(ClientLevel level, double x, double y, double z, TextureAtlasSprite sprite) {
+        super(level, x, y, z /*? if >=1.21.9 {*//*,sprite*//*?}*/);
+        this.setSprite(sprite);
 
-        this.gravity = gravity;
-        this.quadSize = size;
-        this.alpha = 0;
-        this.xd = gravity * (level.isThundering() ? stormWindStrength : windStrength);
-        if (CONFIG.compat.yLevelWindAdjustment) this.xd = this.xd * yLevelWindAdjustment(y);
-        this.zd = this.xd;
-        this.yd = -gravity;
         this.hasPhysics = false;
 
-        this.targetOpacity = opacity;
-
         this.setSize(quadSize, quadSize);
-        this.lifetime = CONFIG.perf.particleDistance * 100;
+        this.lifetime = config.perf.particleDistance * 100;
         this.pos = new BlockPos.MutableBlockPos(x, y, z);
         this.oPos = new BlockPos.MutableBlockPos(x, y, z);
         this.baseTemp = level.getBiome(this.pos).value().getBaseTemperature();
+    }
+
+    @Override
+    //? if >=1.21.9 {
+    /*public SingleQuadParticle.Layer getLayer() {
+    *///?} else {
+    public ParticleRenderType getRenderType() {
+     //?}
+        return ConfigData.RenderType.TRANSLUCENT.get();
     }
 
     @Override
@@ -69,7 +71,7 @@ public abstract class WeatherParticle extends TextureSheetParticle {
     }
 
     public void onPositionUpdate() {
-        if (!CONFIG.compat.crossBiomeBorder && Mth.abs(level.getBiome(pos).value().getBaseTemperature() - baseTemp) > 0.4) {
+        if (!config.compat.crossBiomeBorder && Mth.abs(level.getBiome(pos).value().getBaseTemperature() - baseTemp) > 0.4) {
             doCollisionAnim = true;
         }
         if (level.getBlockState(pos).isCollisionShapeFullBlock(level, pos) || !level.getFluidState(pos).isEmpty()) {
@@ -78,7 +80,7 @@ public abstract class WeatherParticle extends TextureSheetParticle {
     }
 
     public void tickDistanceFade() {
-        final float renderDistance = CONFIG.perf.particleDistance;
+        final float renderDistance = config.perf.particleDistance;
         if (distance > renderDistance) {
             remove();
         } else {
@@ -97,11 +99,6 @@ public abstract class WeatherParticle extends TextureSheetParticle {
         if (quadSize <= 0) remove();
     }
 
-    @Override
-    public Optional<ParticleGroup> getParticleGroup() {
-        return Optional.of(WeatherParticleManager.particleGroup);
-    }
-
     public Quaternionf turnBackfaceFlipways(Quaternionf quaternion, Vector3f cameraOffset) {
         Vector3f normal = new Vector3f(0, 0, 1);
         normal.rotate(quaternion).normalize();
@@ -110,11 +107,6 @@ public abstract class WeatherParticle extends TextureSheetParticle {
             return quaternion.mul(Axis.YP.rotation(Mth.PI));
         }
         else return quaternion;
-    }
-
-    //TODO
-    public static double yLevelWindAdjustment(double y) {
-        return Math.clamp(0.01, 0.5, (y - 64) / 40);
     }
 
     //? if <=1.20.1 {
@@ -146,5 +138,9 @@ public abstract class WeatherParticle extends TextureSheetParticle {
         vertexConsumer.vertex(vector3fs[3].x(), vector3fs[3].y(), vector3fs[3].z()).uv(u0, v1).color(this.rCol, this.gCol, this.bCol, this.alpha).uv2(lightColor).endVertex();
 
     }
-    //?}
+    //?} else if >=1.21.9 {
+    /*public void renderRotatedQuad(QuadParticleRenderState h, Quaternionf quaternion, float offsetX, float offsetY, float offsetZ, float tickPercent) {
+        this.extractRotatedQuad(h, quaternion, offsetX, offsetY, offsetZ, tickPercent);
+    }
+    *///?}
 }

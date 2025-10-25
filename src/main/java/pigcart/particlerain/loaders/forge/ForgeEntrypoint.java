@@ -1,9 +1,7 @@
 //? if forge {
 /*package pigcart.particlerain.loaders.forge;
 
-import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.client.Minecraft;
-import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.Registries;
@@ -19,6 +17,7 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 import pigcart.particlerain.ParticleRain;
+import pigcart.particlerain.config.ConfigManager;
 import pigcart.particlerain.config.ConfigScreens;
 import pigcart.particlerain.particle.*;
 
@@ -41,8 +40,7 @@ public class ForgeEntrypoint {
     }
 
     public static void onRegisterCommands(RegisterClientCommandsEvent event) {
-        CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
-        dispatcher.register(ParticleRain.getCommands());
+        event.getDispatcher().register(ParticleRain.getCommands());
     }
 
     public static void onRegisterParticleProviders(RegisterParticleProvidersEvent event) {
@@ -54,6 +52,8 @@ public class ForgeEntrypoint {
         ParticleRain.MIST = MIST.get();
         ParticleRain.RIPPLE = RIPPLE.get();
         ParticleRain.STREAK = STREAK.get();
+        // now that particles are available we can update the custom particle settings in the config
+        ConfigManager.updateTransientVariables();
     }
 
     @SuppressWarnings("removal")
@@ -63,13 +63,13 @@ public class ForgeEntrypoint {
         MinecraftForge.EVENT_BUS.addListener(ForgeEntrypoint::onRegisterCommands);
         PARTICLE_TYPES.register(eventBus);
         eventBus.addListener(ForgeEntrypoint::onRegisterParticleProviders);
-        ParticleRain.onInitializeClient();
         ModLoadingContext.get().registerExtensionPoint(
                 ConfigScreenHandler.ConfigScreenFactory.class,
                 () -> new ConfigScreenHandler.ConfigScreenFactory(
                         (client, parent) -> ConfigScreens.generateMainConfigScreen(parent)
                 )
         );
+        ParticleRain.onInitializeClient();
     }
 }
 *///?}

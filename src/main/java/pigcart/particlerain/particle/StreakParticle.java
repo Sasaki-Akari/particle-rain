@@ -4,47 +4,65 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.particle.Particle;
-import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.particle.ParticleRenderType;
-import net.minecraft.client.particle.SpriteSet;
+import net.minecraft.client.particle.*;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import org.joml.AxisAngle4d;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
-import pigcart.particlerain.StonecutterUtil;
+import org.joml.*;
+import pigcart.particlerain.ParticleRain;
+import pigcart.particlerain.VersionUtil;
 import pigcart.particlerain.TextureUtil;
-import pigcart.particlerain.WeatherParticleManager;
+import pigcart.particlerain.config.Whitelist;
+import pigcart.particlerain.mixin.access.ParticleEngineAccessor;
+//? if >=1.21.9 {
+/*import net.minecraft.core.particles.ParticleLimit;
+import net.minecraft.client.renderer.state.QuadParticleRenderState;
+*///?} else {
+import net.minecraft.core.particles.ParticleGroup;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+//?}
 
-import static pigcart.particlerain.config.ModConfig.CONFIG;
+import java.util.Optional;
+
+import static pigcart.particlerain.config.ConfigManager.config;
 
 public class StreakParticle extends WeatherParticle {
 
-    Direction direction;
+    private final Direction direction;
+    private final Whitelist.BlockList blockList;
 
-    private StreakParticle(ClientLevel level, double x, double y, double z, int direction2D, SpriteSet provider) {
-        super(level, x, y, z, level.random.nextFloat()/10, CONFIG.streak.opacity, CONFIG.streak.size, 0, 0);
-
-        if (CONFIG.compat.waterTint) {
+    public StreakParticle(ClientLevel level, double x, double y, double z, Direction direction, Whitelist.BlockList blockList) {
+        super(level, x, y, z, VersionUtil.getSprite(VersionUtil.getId("streak")));
+        if (config.compat.waterTint) {
             TextureUtil.applyWaterTint(this, level, this.pos);
         } else {
             this.setColor(0.2f, 0.3f, 1.0f);
         }
-
-        this.setSprite(provider.get(level.getRandom()));
-        this.alpha = CONFIG.streak.opacity;
+        this.alpha = config.streak.opacity;
+        this.quadSize = config.streak.size;
+        this.setSize(0.01F, 0.01F);
         this.hasPhysics = true;
+        this.yd = -0.1;
+        this.roll = direction.get2DDataValue() * Mth.HALF_PI;
 
-        this.roll = direction2D * Mth.HALF_PI;
-        direction = Direction.from2DDataValue(direction2D);
+        this.direction = direction;
+        this.blockList = blockList;
+    }
+
+    @Override
+    //? if >=1.21.9 {
+    /*public Optional<ParticleLimit> getParticleLimit() {
+    *///?} else {
+    public Optional<ParticleGroup> getParticleGroup() {
+    //?}
+        return Optional.empty();
     }
 
     @Override
@@ -64,13 +82,13 @@ public class StreakParticle extends WeatherParticle {
     public void onPositionUpdate() {
         Vec3 start = new Vec3(x, y, z);
         Vec3 end = start.relative(direction.getOpposite(), 0.06F);
-        BlockHitResult hit = level.clip(StonecutterUtil.getClipContext(start, end));
+        BlockHitResult hit = level.clip(VersionUtil.getClipContext(start, end));
         BlockState stateBehind = level.getBlockState(hit.getBlockPos());
         FluidState fluidState = level.getFluidState(pos);
         if (hit.getType().equals(HitResult.Type.MISS)) {
             Minecraft.getInstance().particleEngine.createParticle(ParticleTypes.DRIPPING_WATER, x, y - 0.05, z, 0, 0, 0);
             doCollisionAnim = true;
-        } else if (!WeatherParticleManager.canHostStreaks(stateBehind) || !fluidState.isEmpty()) {
+        } else if (!blockList.contains(stateBehind.getBlockHolder()) || !fluidState.isEmpty()) {
             doCollisionAnim = true;
         }
     }
@@ -85,11 +103,11 @@ public class StreakParticle extends WeatherParticle {
 
     @Override
     public void tickDistanceFade() {
-        if (!doCollisionAnim) super.tickDistanceFade();
+        //if (!doCollisionAnim) super.tickDistanceFade();
     }
 
     @Override
-    public void render(VertexConsumer vertexConsumer, Camera camera, float f) {
+    public void /*? if >=1.21.9 {*//*extract(QuadParticleRenderState*//*?} else {*/render(VertexConsumer/*?}*/ h, Camera camera, float f) {
         Vec3 camPos = camera.getPosition();
         float x = (float) (Mth.lerp(f, this.xo, this.x) - camPos.x());
         float y = (float) (Mth.lerp(f, this.yo, this.y) - camPos.y());
@@ -97,12 +115,7 @@ public class StreakParticle extends WeatherParticle {
 
         Quaternionf quaternion = new Quaternionf(new AxisAngle4d(this.roll, 0, 1, 0));
         this.turnBackfaceFlipways(quaternion, new Vector3f(x, y, z));
-        this.renderRotatedQuad(vertexConsumer, quaternion, x, y + quadSize, z, f);
-    }
-
-    @Override
-    public ParticleRenderType getRenderType() {
-        return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
+        this.renderRotatedQuad(h, quaternion, x, y + quadSize, z, f);
     }
 
     public static class DefaultFactory implements ParticleProvider<SimpleParticleType> {
@@ -114,8 +127,8 @@ public class StreakParticle extends WeatherParticle {
         }
 
         @Override
-        public Particle createParticle(SimpleParticleType parameters, ClientLevel level, double x, double y, double z, double velocityX, double velocityY, double velocityZ) {
-            return new StreakParticle(level, x, y, z, (int) velocityX, this.provider);
+        public Particle createParticle(SimpleParticleType parameters, ClientLevel level, double x, double y, double z, double velocityX, double velocityY, double velocityZ/*? if >=1.21.9 {*//*, RandomSource random*//*?}*/) {
+            return new StreakParticle(level, x, y, z, Direction.getRandom(level.random), new Whitelist.BlockList());
         }
     }
 }

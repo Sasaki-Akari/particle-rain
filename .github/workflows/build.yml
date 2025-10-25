@@ -10,7 +10,8 @@ jobs:
                    1.21.1-fabric, 1.21.1-neoforge,
                    1.21.4-fabric, 1.21.4-neoforge,
                    1.21.5-fabric, 1.21.5-neoforge,
-                   1.21.6-fabric, 1.21.6-neoforge ]
+                   1.21.6-fabric, 1.21.6-neoforge,
+                   1.21.9-fabric]
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
@@ -21,7 +22,7 @@ jobs:
         with:
           distribution: temurin
           cache: gradle
-          java-version: 21
+          java-version: 24
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
       - name: build
