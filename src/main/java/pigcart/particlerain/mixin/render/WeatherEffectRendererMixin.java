@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import pigcart.particlerain.ParticleRain;
 //? if >=1.21.9 {
-/^import net.minecraft.client.renderer.state.WeatherRenderState;
+/^import net.minecraft.client.renderer.state./^¹?>=26.1{¹^//^¹level.¹^//^¹?}¹^/WeatherRenderState;
 ^///?}
 
 import static pigcart.particlerain.config.ConfigManager.config;
@@ -42,7 +42,7 @@ public abstract class WeatherEffectRendererMixin {
 
     // insert additional sounds without replacing vanilla code block where rain sounds are played
     @Inject(method = "tickRainParticles", at = @At(value = "FIELD", opcode = Opcodes.PUTFIELD, shift = At.Shift.AFTER, ordinal = 1, target = "Lnet/minecraft/client/renderer/WeatherEffectRenderer;rainSoundTime:I"), cancellable = true)
-    public void hookWeatherSounds(ClientLevel level, Camera camera, int ticks, ParticleStatus particleStatus, CallbackInfo ci, @Local(ordinal = 0) BlockPos blockPos, @Local(ordinal = 1) BlockPos blockPos2) {
+    public void hookWeatherSounds(ClientLevel level, Camera camera, int ticks, ParticleStatus particleStatus,/^?>=1.21.11{^//^int weatherRadius,^//^?}^/ CallbackInfo ci, @Local(ordinal = 0) BlockPos blockPos, @Local(ordinal = 1) BlockPos blockPos2) {
         ParticleRain.doAdditionalWeatherSounds(level, blockPos, blockPos2, ci);
     }
 
@@ -54,7 +54,7 @@ public abstract class WeatherEffectRendererMixin {
 
     // particle status MINIMAL disables splash particles
     @Inject(method = "tickRainParticles", at = @At("HEAD"))
-    public void tickRainParticles(ClientLevel level, Camera camera, int ticks, ParticleStatus particleStatus, CallbackInfo ci, @Local(argsOnly = true) LocalRef<ParticleStatus> particleStatusLocalRef) {
+    public void tickRainParticles(ClientLevel level, Camera camera, int ticks, ParticleStatus particleStatus,/^?>=1.21.11{^//^int weatherRadius,^//^?}^/ CallbackInfo ci, @Local(argsOnly = true) LocalRef<ParticleStatus> particleStatusLocalRef) {
         if (!config.compat.doDefaultSplashing) {
             particleStatusLocalRef.set(ParticleStatus.MINIMAL);
         }
@@ -90,22 +90,15 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.NoteBlock;
-import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.levelgen.Heightmap;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import pigcart.particlerain.ParticleRain;
-import pigcart.particlerain.VersionUtil;
 import pigcart.particlerain.config.ConfigManager;
 
 import static pigcart.particlerain.config.ConfigManager.config;

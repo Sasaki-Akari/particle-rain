@@ -10,12 +10,11 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.AxisAngle4d;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import pigcart.particlerain.VersionUtil;
 import pigcart.particlerain.config.ConfigData;
 //? if >=1.21.9 {
-/*import net.minecraft.core.particles.ParticleLimit;
-import net.minecraft.client.renderer.state.QuadParticleRenderState;
+/*import net.minecraft.client.renderer.state./^?>=26.1{^//^level.^//^?}^/QuadParticleRenderState;
 *///?} else {
-import net.minecraft.core.particles.ParticleGroup;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 //?}
 
@@ -37,12 +36,12 @@ public class MistParticle extends WeatherParticle {
         this.lifetime = config.mist.lifetime;
         this.alpha = 0;
 
-        Color color = new Color(this.level.getBiome(this.pos).value().getFogColor());
+        Color color = VersionUtil.getFogColor(level, pos);
         this.rCol = color.getRed() / 255F;
         this.gCol = color.getGreen() / 255F;
         this.bCol = color.getBlue() / 255F;
 
-        this.roll = Mth.HALF_PI * level.random.nextInt(4);
+        this.roll = Mth.HALF_PI * level.getRandom().nextInt(4);
         this.oRoll = this.roll;
     }
 
@@ -62,15 +61,6 @@ public class MistParticle extends WeatherParticle {
 
     @Override
     //? if >=1.21.9 {
-    /*public Optional<ParticleLimit> getParticleLimit() {
-    *///?} else {
-    public Optional<ParticleGroup> getParticleGroup() {
-    //?}
-        return Optional.empty();
-    }
-
-    @Override
-    //? if >=1.21.9 {
     /*public SingleQuadParticle.Layer getLayer() {
     *///?} else {
     public ParticleRenderType getRenderType() {
@@ -81,7 +71,7 @@ public class MistParticle extends WeatherParticle {
 
     @Override
     public void /*? if >=1.21.9 {*//*extract(QuadParticleRenderState*//*?} else {*/render(VertexConsumer/*?}*/ h, Camera camera, float tickPercent) {
-        Vec3 camPos = camera.getPosition();
+        Vec3 camPos = VersionUtil.camPos(camera);
         float x = (float) (Mth.lerp(tickPercent, this.xo, this.x) - camPos.x());
         float y = (float) (Mth.lerp(tickPercent, this.yo, this.y) - camPos.y());
         float z = (float) (Mth.lerp(tickPercent, this.zo, this.z) - camPos.z());
@@ -93,11 +83,11 @@ public class MistParticle extends WeatherParticle {
         this.renderRotatedQuad(h, quaternion, x, y, z, tickPercent);
     }
 
-    public static class DefaultFactory implements ParticleProvider<SimpleParticleType> {
+    public static class Provider implements ParticleProvider<SimpleParticleType> {
 
         private final SpriteSet provider;
 
-        public DefaultFactory(SpriteSet provider) {
+        public Provider(SpriteSet provider) {
             this.provider = provider;
         }
 

@@ -22,10 +22,8 @@ import pigcart.particlerain.TextureUtil;
 import pigcart.particlerain.config.Whitelist;
 import pigcart.particlerain.mixin.access.ParticleEngineAccessor;
 //? if >=1.21.9 {
-/*import net.minecraft.core.particles.ParticleLimit;
-import net.minecraft.client.renderer.state.QuadParticleRenderState;
+/*import net.minecraft.client.renderer.state./^?>=26.1{^//^level.^//^?}^/QuadParticleRenderState;
 *///?} else {
-import net.minecraft.core.particles.ParticleGroup;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 //?}
 
@@ -54,15 +52,6 @@ public class StreakParticle extends WeatherParticle {
 
         this.direction = direction;
         this.blockList = blockList;
-    }
-
-    @Override
-    //? if >=1.21.9 {
-    /*public Optional<ParticleLimit> getParticleLimit() {
-    *///?} else {
-    public Optional<ParticleGroup> getParticleGroup() {
-    //?}
-        return Optional.empty();
     }
 
     @Override
@@ -108,7 +97,7 @@ public class StreakParticle extends WeatherParticle {
 
     @Override
     public void /*? if >=1.21.9 {*//*extract(QuadParticleRenderState*//*?} else {*/render(VertexConsumer/*?}*/ h, Camera camera, float f) {
-        Vec3 camPos = camera.getPosition();
+        Vec3 camPos = VersionUtil.camPos(camera);
         float x = (float) (Mth.lerp(f, this.xo, this.x) - camPos.x());
         float y = (float) (Mth.lerp(f, this.yo, this.y) - camPos.y());
         float z = (float) (Mth.lerp(f, this.zo, this.z) - camPos.z());
@@ -118,17 +107,17 @@ public class StreakParticle extends WeatherParticle {
         this.renderRotatedQuad(h, quaternion, x, y + quadSize, z, f);
     }
 
-    public static class DefaultFactory implements ParticleProvider<SimpleParticleType> {
+    public static class Provider implements ParticleProvider<SimpleParticleType> {
 
         private final SpriteSet provider;
 
-        public DefaultFactory(SpriteSet provider) {
+        public Provider(SpriteSet provider) {
             this.provider = provider;
         }
 
         @Override
         public Particle createParticle(SimpleParticleType parameters, ClientLevel level, double x, double y, double z, double velocityX, double velocityY, double velocityZ/*? if >=1.21.9 {*//*, RandomSource random*//*?}*/) {
-            return new StreakParticle(level, x, y, z, Direction.getRandom(level.random), new Whitelist.BlockList());
+            return new StreakParticle(level, x, y, z, Direction.getRandom(level.getRandom()), new Whitelist.BlockList());
         }
     }
 }

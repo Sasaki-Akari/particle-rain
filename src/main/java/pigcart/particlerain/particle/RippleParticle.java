@@ -1,7 +1,6 @@
 package pigcart.particlerain.particle;
 
 import net.minecraft.client.Camera;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
@@ -13,11 +12,9 @@ import org.joml.AxisAngle4d;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.joml.Math;
-import pigcart.particlerain.ParticleRain;
 import pigcart.particlerain.VersionUtil;
-import pigcart.particlerain.mixin.access.ParticleEngineAccessor;
 //? if >=1.21.9 {
-/*import net.minecraft.client.renderer.state.QuadParticleRenderState;
+/*import net.minecraft.client.renderer.state./^?>=26.1{^//^level.^//^?}^/QuadParticleRenderState;
 import net.minecraft.util.RandomSource;
 *///?} else {
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -50,7 +47,7 @@ public class RippleParticle extends WeatherParticle {
 
     @Override
     public void /*? if >=1.21.9 {*//*extract(QuadParticleRenderState*//*?} else {*/render(VertexConsumer/*?}*/ h, Camera camera, float f) {
-        Vec3 camPos = camera.getPosition();
+        Vec3 camPos = VersionUtil.camPos(camera);
         float x = (float) (Mth.lerp(f, this.xo, this.x) - camPos.x());
         float y = (float) (Mth.lerp(f, this.yo, this.y) - camPos.y());
         float z = (float) (Mth.lerp(f, this.zo, this.z) - camPos.z());
@@ -60,9 +57,9 @@ public class RippleParticle extends WeatherParticle {
         this.renderRotatedQuad(h, quaternion, x, y, z, f);
     }
 
-    public static class DefaultFactory implements ParticleProvider<SimpleParticleType> {
+    public static class Provider implements ParticleProvider<SimpleParticleType> {
 
-        public DefaultFactory(SpriteSet provider) {
+        public Provider(SpriteSet provider) {
         }
 
         @Override

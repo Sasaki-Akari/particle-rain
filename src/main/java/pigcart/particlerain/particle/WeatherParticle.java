@@ -2,7 +2,7 @@ package pigcart.particlerain.particle;
 
 //? if >= 1.21.9 {
 /*import net.minecraft.client.particle.SingleQuadParticle;
-import net.minecraft.client.renderer.state.QuadParticleRenderState;
+import net.minecraft.client.renderer.state./^?>=26.1{^//^level.^//^?}^/QuadParticleRenderState;
 *///?} else {
 import net.minecraft.client.particle.ParticleRenderType;
 import net.minecraft.client.particle.TextureSheetParticle;
@@ -17,7 +17,9 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import pigcart.particlerain.config.ConfigData;
+import pigcart.particlerain.ParticleSpawner;
+import pigcart.particlerain.VersionUtil;
+import pigcart.particlerain.config.ParticleData;
 
 import static pigcart.particlerain.config.ConfigManager.config;
 
@@ -43,6 +45,14 @@ public abstract class WeatherParticle extends /*? if >=1.21.9 {*/ /*SingleQuadPa
         this.pos = new BlockPos.MutableBlockPos(x, y, z);
         this.oPos = new BlockPos.MutableBlockPos(x, y, z);
         this.baseTemp = level.getBiome(this.pos).value().getBaseTemperature();
+
+        ParticleSpawner.particleCount++;
+    }
+
+    @Override
+    public void remove() {
+        if (this.isAlive()) ParticleSpawner.particleCount--;
+        super.remove();
     }
 
     @Override
@@ -51,14 +61,14 @@ public abstract class WeatherParticle extends /*? if >=1.21.9 {*/ /*SingleQuadPa
     *///?} else {
     public ParticleRenderType getRenderType() {
      //?}
-        return ConfigData.RenderType.TRANSLUCENT.get();
+        return ParticleData.RenderType.TRANSLUCENT.get();
     }
 
     @Override
     public void tick() {
         super.tick();
         oQuadSize = quadSize;
-        distance = (float) Minecraft.getInstance().gameRenderer.getMainCamera().getPosition().distanceTo(new Vec3(x, y, z));
+        distance = (float) VersionUtil.camPos(Minecraft.getInstance().gameRenderer.getMainCamera()).distanceTo(new Vec3(x, y, z));
         pos.set(x, y, z);
         if (!pos.equals(oPos)) {
             onPositionUpdate();

@@ -5,8 +5,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraftforge.client.ConfigScreenHandler;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.client.event.RegisterParticleProvidersEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
@@ -14,11 +18,12 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
+import pigcart.particlerain.ParticleLoader;
 import pigcart.particlerain.ParticleRain;
 import pigcart.particlerain.config.ConfigManager;
-import pigcart.particlerain.config.ConfigScreens;
 import pigcart.particlerain.particle.*;
 
 @Mod(ParticleRain.MOD_ID)
@@ -44,29 +49,46 @@ public class ForgeEntrypoint {
     }
 
     public static void onRegisterParticleProviders(RegisterParticleProvidersEvent event) {
-        event.registerSpriteSet(SHRUB.get(), ShrubParticle.DefaultFactory::new);
-        event.registerSpriteSet(MIST.get(), MistParticle.DefaultFactory::new);
-        event.registerSpriteSet(RIPPLE.get(), RippleParticle.DefaultFactory::new);
-        event.registerSpriteSet(STREAK.get(), StreakParticle.DefaultFactory::new);
+        //TODO
+        event.registerSpriteSet(SHRUB.get(), ShrubParticle.Provider::new);
+        event.registerSpriteSet(MIST.get(), MistParticle.Provider::new);
+        event.registerSpriteSet(RIPPLE.get(), RippleParticle.Provider::new);
+        event.registerSpriteSet(STREAK.get(), StreakParticle.Provider::new);
         ParticleRain.SHRUB = SHRUB.get();
         ParticleRain.MIST = MIST.get();
         ParticleRain.RIPPLE = RIPPLE.get();
         ParticleRain.STREAK = STREAK.get();
-        // now that particles are available we can update the custom particle settings in the config
-        ConfigManager.updateTransientVariables();
+    }
+
+    public static void onRegisterClientReloadListeners(RegisterClientReloadListenersEvent event) {
+        event.registerReloadListener(new SimplePreparableReloadListener<>() {
+            @Override
+            protected Object prepare(ResourceManager resourceManager, ProfilerFiller profilerFiller) {
+                ParticleLoader.onResourceManagerReload(resourceManager); //yeah whatever
+                return null;
+            }
+
+            @Override
+            protected void apply(Object o, ResourceManager resourceManager, ProfilerFiller profilerFiller) {
+            }
+        });
     }
 
     @SuppressWarnings("removal")
     public ForgeEntrypoint() {
+        if (FMLEnvironment.dist.isDedicatedServer()) return;
+
         IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();
         MinecraftForge.EVENT_BUS.addListener(ForgeEntrypoint::onTick);
         MinecraftForge.EVENT_BUS.addListener(ForgeEntrypoint::onRegisterCommands);
+        //MinecraftForge.EVENT_BUS.addListener(ForgeEntrypoint::onRegisterReloadListeners);
         PARTICLE_TYPES.register(eventBus);
         eventBus.addListener(ForgeEntrypoint::onRegisterParticleProviders);
+        eventBus.addListener(ForgeEntrypoint::onRegisterClientReloadListeners);
         ModLoadingContext.get().registerExtensionPoint(
                 ConfigScreenHandler.ConfigScreenFactory.class,
                 () -> new ConfigScreenHandler.ConfigScreenFactory(
-                        (client, parent) -> ConfigScreens.generateMainConfigScreen(parent)
+                        (client, parent) -> ConfigManager.screenPlease(parent)
                 )
         );
         ParticleRain.onInitializeClient();
